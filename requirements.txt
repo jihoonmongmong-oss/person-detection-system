@@ -1,0 +1,6 @@
+Flask==2.3.3
+torch==2.0.1
+torchvision==0.15.2
+Pillow==10.0.0
+ultralytics==8.0.196
+gunicorn==21.2.0

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Person Detection System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='index_person.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <div class="header-content">
+                <div class="logo">Person Detection System</div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT -->
+        <main>
+            <!-- UPLOAD SECTION -->
+            <div class="upload-section">
+                <h2>Upload Image for Detection</h2>
+                <p style="color: #666; text-align: center; margin-bottom: 25px;">
+                    Upload any image from your device or use your webcam to capture a live image
+                </p>
+                <div class="upload-form">
+                    <form action="/predict" method="post" enctype="multipart/form-data" id="uploadForm">
+                        <div class="file-input-wrapper">
+                            <label for="image" class="file-input-label">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <p>Click to upload or drag and drop</p>
+                                <small>PNG, JPG, GIF up to 16MB</small>
+                            </label>
+                            <input type="file" name="image" id="image" accept="image/*" required>
+                        </div>
+                        <button type="submit">Detect Objects</button>
+                    </form>
+                </div>
+
+                <!-- WEBCAM SECTION -->
+                <div class="webcam-section">
+                    <h3>Or Use Webcam</h3>
+                    <div class="webcam-controls">
+                        <button id="startWebcam" type="button">Start Webcam</button>
+                        <button id="captureImage" type="button" style="display: none;">Capture Image</button>
+                        <button id="stopWebcam" type="button" style="display: none;">Stop Webcam</button>
+                    </div>
+                    <div class="webcam-container">
+                        <video id="webcamVideo" autoplay playsinline style="display: none; width: 100%; max-width: 400px;"></video>
+                        <canvas id="webcamCanvas" style="display: none;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RESULT SECTION -->
+            {% if image %}
+            <div class="result show">
+                <div class="result-content">
+                    <div class="result-image">
+                        <img src="{{ image }}" alt="Uploaded image">
+                    </div>
+                    <div class="result-info">
+                        <h2>Detection Results</h2>
+                        <div class="prediction {{ label }}">
+                            <h3>{{ label|upper }}</h3>
+                            <div class="prediction-detail">
+                                <strong>Model Confidence:</strong> {{ "%.2f"|format(confidence * 100) }}%
+                            </div>
+                            <div class="prediction-detail">
+                                <strong>People Detected:</strong> {{ people_count }}
+                            </div>
+                            {% if other_detections %}
+                            <div class="detections">
+                                <h4>Other Objects Detected ({{ other_detections|length }})</h4>
+                                <ul>
+                                {% for detection in other_detections %}
+                                    <li><strong>{{ detection.class }}</strong> - {{ "%.1f"|format(detection.confidence * 100) }}% confidence</li>
+                                {% endfor %}
+                                </ul>
+                            </div>
+                            {% else %}
+                            <div class="detections">
+                                <h4>No Other Objects Detected</h4>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- INFO CARDS -->
+            <div class="info-cards">
+                <div class="card">
+                    <h3>YOLOv8 Detection</h3>
+                    <p>State-of-the-art real-time object detection. Detects people and 80+ COCO classes with high accuracy and speed.</p>
+                </div>
+                <div class="card">
+                    <h3>MobileNetV2 Classification</h3>
+                    <p>Lightweight neural network for person classification. Optimized for fast inference while maintaining accuracy.</p>
+                </div>
+                <div class="card">
+                    <h3>Hybrid Approach</h3>
+                    <p>Combines detection and classification for maximum accuracy. If YOLOv8 detects a person, result is guaranteed correct.</p>
+                </div>
+            </div>
+
+            <!-- HOW IT WORKS -->
+            <div class="how-it-works">
+                <h2>How It Works</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <p><strong>Upload Image</strong><br>Choose any image from your device</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <p><strong>YOLOv8 Detection</strong><br>Scans image for all objects</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <p><strong>Classification</strong><br>Analyzes person presence</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <p><strong>Results</strong><br>Get detailed detection report</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODELS SECTION -->
+            <div class="models-section">
+                <h3>Detection Models</h3>
+                
+                <div class="model-info">
+                    <strong>Primary Model: YOLOv8 Medium</strong><br>
+                    Architecture: Convolutional Neural Network (CNN)<br>
+                    Classes: 80 COCO dataset classes<br>
+                    Speed: ~50-100ms per image<br>
+                    Accuracy: 53% mAP (multiple classes)<br>
+                    Size: ~50MB
+                </div>
+
+                <div class="model-info">
+                    <strong>Secondary Model: MobileNetV2</strong><br>
+                    Architecture: Lightweight CNN with depthwise separable convolutions<br>
+                    Classes: Binary (Person / No Person)<br>
+                    Speed: ~10-20ms per image<br>
+                    Accuracy: 100% on person classification<br>
+                    Size: ~20MB
+                </div>
+
+                <div class="model-info">
+                    <strong>Ensemble Strategy</strong><br>
+                    If YOLOv8 detects ≥1 person → Label: "PERSON" (99% confidence)<br>
+                    Else if MobileNetV2 probability > 0.5 → Label: "PERSON"<br>
+                    Else → Label: "NO PERSON"
+                </div>
+            </div>
+
+            <!-- CLASSES SECTION - COLLAPSIBLE -->
+            <div class="classes-section">
+                <div class="classes-header" onclick="toggleClasses()">
+                    <h2>80 COCO Dataset Classes</h2>
+                    <span class="toggle-icon" id="toggleIcon">▼</span>
+                </div>
+                <div class="classes-content" id="classesContent">
+                    <p style="color: #666; margin-bottom: 20px;">YOLOv8 can detect all of these object classes:</p>
+                    <div class="classes-grid">
+                        <div class="class-tag">Person</div>
+                        <div class="class-tag">Bicycle</div>
+                        <div class="class-tag">Car</div>
+                        <div class="class-tag">Motorcycle</div>
+                        <div class="class-tag">Airplane</div>
+                        <div class="class-tag">Bus</div>
+                        <div class="class-tag">Train</div>
+                        <div class="class-tag">Truck</div>
+                        <div class="class-tag">Boat</div>
+                        <div class="class-tag">Traffic Light</div>
+                        <div class="class-tag">Fire Hydrant</div>
+                        <div class="class-tag">Stop Sign</div>
+                        <div class="class-tag">Parking Meter</div>
+                        <div class="class-tag">Bench</div>
+                        <div class="class-tag">Cat</div>
+                        <div class="class-tag">Dog</div>
+                        <div class="class-tag">Horse</div>
+                        <div class="class-tag">Sheep</div>
+                        <div class="class-tag">Cow</div>
+                        <div class="class-tag">Elephant</div>
+                        <div class="class-tag">Bear</div>
+                        <div class="class-tag">Zebra</div>
+                        <div class="class-tag">Giraffe</div>
+                        <div class="class-tag">Backpack</div>
+                        <div class="class-tag">Umbrella</div>
+                        <div class="class-tag">Handbag</div>
+                        <div class="class-tag">Tie</div>
+                        <div class="class-tag">Suitcase</div>
+                        <div class="class-tag">Frisbee</div>
+                        <div class="class-tag">Skis</div>
+                        <div class="class-tag">Snowboard</div>
+                        <div class="class-tag">Sports Ball</div>
+                        <div class="class-tag">Kite</div>
+                        <div class="class-tag">Baseball Bat</div>
+                        <div class="class-tag">Baseball Glove</div>
+                        <div class="class-tag">Skateboard</div>
+                        <div class="class-tag">Surfboard</div>
+                        <div class="class-tag">Tennis Racket</div>
+                        <div class="class-tag">Bottle</div>
+                        <div class="class-tag">Wine Glass</div>
+                        <div class="class-tag">Cup</div>
+                        <div class="class-tag">Fork</div>
+                        <div class="class-tag">Knife</div>
+                        <div class="class-tag">Spoon</div>
+                        <div class="class-tag">Bowl</div>
+                        <div class="class-tag">Banana</div>
+                        <div class="class-tag">Apple</div>
+                        <div class="class-tag">Sandwich</div>
+                        <div class="class-tag">Orange</div>
+                        <div class="class-tag">Broccoli</div>
+                        <div class="class-tag">Carrot</div>
+                        <div class="class-tag">Hot Dog</div>
+                        <div class="class-tag">Pizza</div>
+                        <div class="class-tag">Donut</div>
+                        <div class="class-tag">Cake</div>
+                        <div class="class-tag">Chair</div>
+                        <div class="class-tag">Couch</div>
+                        <div class="class-tag">Potted Plant</div>
+                        <div class="class-tag">Bed</div>
+                        <div class="class-tag">Dining Table</div>
+                        <div class="class-tag">Toilet</div>
+                        <div class="class-tag">TV</div>
+                        <div class="class-tag">Laptop</div>
+                        <div class="class-tag">Mouse</div>
+                        <div class="class-tag">Remote</div>
+                        <div class="class-tag">Keyboard</div>
+                        <div class="class-tag">Cell Phone</div>
+                        <div class="class-tag">Microwave</div>
+                        <div class="class-tag">Oven</div>
+                        <div class="class-tag">Toaster</div>
+                        <div class="class-tag">Sink</div>
+                        <div class="class-tag">Refrigerator</div>
+                        <div class="class-tag">Book</div>
+                        <div class="class-tag">Clock</div>
+                        <div class="class-tag">Vase</div>
+                        <div class="class-tag">Scissors</div>
+                        <div class="class-tag">Teddy Bear</div>
+                        <div class="class-tag">Hair Drier</div>
+                        <div class="class-tag">Toothbrush</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Toggle classes dropdown
+        function toggleClasses() {
+            const content = document.getElementById('classesContent');
+            const icon = document.getElementById('toggleIcon');
+            
+            content.classList.toggle('hidden');
+            
+            if (content.classList.contains('hidden')) {
+                icon.textContent = '▶';
+            } else {
+                icon.textContent = '▼';
+            }
+        }
+
+        // Drag and drop for file input
+        const fileInput = document.getElementById('image');
+        const fileInputLabel = document.querySelector('.file-input-label');
+
+        if (fileInputLabel) {
+            fileInputLabel.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileInputLabel.style.background = '#800000';
+                fileInputLabel.style.color = 'white';
+            });
+
+            fileInputLabel.addEventListener('dragleave', () => {
+                fileInputLabel.style.background = '#fff9f9';
+                fileInputLabel.style.color = '#800000';
+            });
+
+            fileInputLabel.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileInputLabel.style.background = '#fff9f9';
+                fileInputLabel.style.color = '#800000';
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                }
+            });
+
+            // Show filename when selected
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    fileInputLabel.innerHTML = `
+                        <p>✓ ${fileInput.files[0].name}</p>
+                        <small>Ready to upload</small>
+                    `;
+                }
+            });
+        }
+
+        // Webcam functionality
+        let stream = null;
+        const video = document.getElementById('webcamVideo');
+        const canvas = document.getElementById('webcamCanvas');
+        const startBtn = document.getElementById('startWebcam');
+        const captureBtn = document.getElementById('captureImage');
+        const stopBtn = document.getElementById('stopWebcam');
+
+        startBtn.addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.style.display = 'block';
+                startBtn.style.display = 'none';
+                captureBtn.style.display = 'inline-block';
+                stopBtn.style.display = 'inline-block';
+            } catch (err) {
+                alert('Error accessing webcam: ' + err.message);
+            }
+        });
+
+        captureBtn.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            canvas.toBlob((blob) => {
+                // Stop the webcam after capturing
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    video.style.display = 'none';
+                    startBtn.style.display = 'inline-block';
+                    captureBtn.style.display = 'none';
+                    stopBtn.style.display = 'none';
+                }
+
+                const formData = new FormData();
+                formData.append('image', blob, 'webcam_capture.jpg');
+                
+                // Submit and replace page content
+                fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => response.text()).then(html => {
+                    document.open();
+                    document.write(html);
+                    document.close();
+                }).catch(err => {
+                    alert('Error: ' + err.message);
+                });
+            }, 'image/jpeg');
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.style.display = 'none';
+                startBtn.style.display = 'inline-block';
+                captureBtn.style.display = 'none';
+                stopBtn.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
